@@ -1,0 +1,5 @@
+d2,2,AND,0,null
+5,3,NOT,1,null
+8,4,NOT,2,null
+11,5,XOR,3,null
+2,4,AND,4,null

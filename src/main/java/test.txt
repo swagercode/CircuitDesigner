@@ -1,0 +1,1 @@
+[nodes.AndGate@41dae5b, nodes.NotGate@1f6f9b22, nodes.OrGate@16b3389a]

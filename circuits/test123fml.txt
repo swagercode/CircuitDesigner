@@ -1,0 +1,15 @@
+53
+6,5,AND,0,2
+12,10,OR,1,null
+9,4,NOT,2,1
+0,1,XOR,3,0
+0,8,NOT,0,0
+14,6,WIRE,0,null
+14,6,WIRE,1,null
+12,5,WIRE,2,null
+12,10,WIRE,3,null
+22,2,WIRE,4,null
+3,9,WIRE,5,null
+3,2,WIRE,6,null
+22,2,WIRE,7,null
+14,1,AND,8,null
