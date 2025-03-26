@@ -1,4 +1,4 @@
-package backend;
+package connections;
 
 import nodes.Gate;
 import nodes.InputNode;

@@ -1,6 +1,6 @@
 package gui;
 
-import backend.PointChecker;
+import connections.PointChecker;
 import fileHandling.FileSaver;
 import nodes.*;
 import javax.imageio.ImageIO;
@@ -12,7 +12,6 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
-import java.util.List;
 
 
 public class CircuitCreationSceneUI extends JFrame implements ActionListener {
@@ -277,7 +276,7 @@ public class CircuitCreationSceneUI extends JFrame implements ActionListener {
         noButton.setText("No");
         noButton.addActionListener(e -> {
             try {
-                FileSaver.saveCircuit(nodes, gridStepValue, inFile);
+                FileSaver.saveCircuit(nodes, connectionPoints, gridStepValue, inFile);
                 System.exit(0);
             } catch (IOException ex) {
                 throw new RuntimeException(ex);
@@ -359,6 +358,8 @@ public class CircuitCreationSceneUI extends JFrame implements ActionListener {
 
     }
 
+
+    private final int pointScale = 5;
     private void createUIComponents() {
         // Create the createPanel with custom paintComponent
         createPanel = new JPanel() {
@@ -367,57 +368,12 @@ public class CircuitCreationSceneUI extends JFrame implements ActionListener {
             @Override
             protected void paintComponent(Graphics g) {
                 super.paintComponent(g);
+                Graphics2D g2d = (Graphics2D) g;
 
-                ((Graphics2D) g).setStroke(new BasicStroke(2));
-                g.setColor(GRID_COLOR);
-                // Draw the grid
-                for (int i = 0; i <= MainMenu.SCREEN_SIZE.getWidth(); i += gridStepValue) {
-                    g.drawLine(i, 0, i, (int) MainMenu.SCREEN_SIZE.getHeight());
-                }
-                for (int i = 0; i <= MainMenu.SCREEN_SIZE.getHeight(); i += gridStepValue) {
-                    g.drawLine(0, i, (int) MainMenu.SCREEN_SIZE.getWidth(), i);
-                }
-
-                // Draws a small circle on each intersection of lines. AKA on every step of the gridStepValue.
-                // radius of each circle is defined here
-                radius = gridStepValue / 5;
-                // iterate over the X axis
-                for (int x = 0; x <= createPanel.getWidth(); x += gridStepValue) {
-                    // iterate over the Y axis
-                    for (int y = 0; y <= createPanel.getHeight(); y += gridStepValue) {
-
-                        // draw the circles. Ovals are drawn from the corner, so the x and y values need to be offset
-                        // by the radius to get the circle centered on the point
-                        g.fillOval(x - radius / 2, y - radius / 2, radius, radius);
-                    }
-                }
-
-                // call the paint method of each placed node, except for the grabbed node which is painted separately
-                for (Placeable node : nodes) {
-                    if (!node.equals(grabbedNode)) {
-                        node.paint(g);
-                        }
-                    }
-
-
-                for (Point point : connectionPoints) {
-                    if (Objects.isNull(point)) continue;
-                    g.setColor(CONNECTION_COLOR);
-                    g.fillOval(point.x - radius / 2, point.y - radius / 2, radius, radius);
-                }
-
-
-                /* Paint a rectangle around the grabbed node. Also paint it separately so that it doesn't snap to the
-                grid til grabbedNode is released.
-                 */
-                if (!Objects.isNull(grabbedNode)) {
-                    grabbedNode.paint(g);
-                    grabbedNode.paintSelected(g);
-                }
-
-                if (!Objects.isNull(newWire)){
-                    newWire.paint(g);
-                }
+                GridDrawer.drawGrid(gridStepValue, g2d, createPanel.getWidth(), createPanel.getHeight(), pointScale, GRID_COLOR);
+                GridDrawer.drawNodes(nodes, g2d, grabbedNode);
+                GridDrawer.drawFloaters(newWire, grabbedNode, g2d);
+                GridDrawer.drawConnectionPoints(g2d, gridStepValue, pointScale, connectionPoints, CONNECTION_COLOR);
             }
         };// End createPanel creation
 

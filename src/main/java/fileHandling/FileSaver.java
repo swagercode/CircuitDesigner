@@ -7,6 +7,7 @@ import nodes.*;
 
 import java.awt.*;
 import java.io.*;
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Set;
@@ -121,7 +122,7 @@ public class FileSaver {
      * @param inFile
      * File to be written to
      */
-    public static void saveCircuit(ArrayList<Placeable> circuitData, Set<Point> points, int gridStepValue, File inFile) throws IOException{ // TODO: change so it only edits changed values
+    public static void saveCircuit(ArrayList<Placeable> circuitData, ArrayList<Point> connectionPoints, int gridStepValue, File inFile) throws IOException{ // TODO: change so it only edits changed values
         if (circuitData.isEmpty()) return;
         writer = new BufferedWriter(new FileWriter(inFile));
 
@@ -145,7 +146,7 @@ public class FileSaver {
             }
         }
 
-        for (Point p : points){
+        for (Point p : connectionPoints){
             writer.write(p.x / gridStepValue + "," + p.y / gridStepValue + ",");
         }
         writer.close();
