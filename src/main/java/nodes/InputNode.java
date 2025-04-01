@@ -28,19 +28,6 @@ public class InputNode extends Placeable{
 
     }
 
-    public ArrayList<Point> getOutputPoints(){
-        ArrayList<Point> outputPoints = new ArrayList<>();
-        //top left corner
-        outputPoints.add(pos);
-        //top right corner
-        outputPoints.add(new Point(pos.x  + gridStepValue, pos.y));
-        //bottom left corner
-        outputPoints.add(new Point(pos.x, pos.y + gridStepValue));
-        //bottom right corner
-        outputPoints.add(new Point(pos.x  + gridStepValue, pos.y + gridStepValue));
-        return outputPoints;
-    }
-
     public void addOutput(Placeable placeable){
         outputs.add(placeable);
     }
@@ -143,6 +130,20 @@ public class InputNode extends Placeable{
     @Override
     public int getGridStepValue() {
         return gridStepValue;
+    }
+
+    @Override
+    public ArrayList<Point> getConnectionPoints() {
+        ArrayList<Point> points = new ArrayList<>();
+        //top left corner
+        points.add(pos);
+        //top right corner
+        points.add(new Point(pos.x  + gridStepValue, pos.y));
+        //bottom left corner
+        points.add(new Point(pos.x, pos.y + gridStepValue));
+        //bottom right corner
+        points.add(new Point(pos.x  + gridStepValue, pos.y + gridStepValue));
+        return points;
     }
 
     @Override

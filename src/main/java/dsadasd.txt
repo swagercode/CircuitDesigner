@@ -1,1 +1,1 @@
-[nodes.AndGate@342aaa2c, nodes.NotGate@6726e99d, nodes.XorGate@4b8681eb]
+[nodes.gates.AndGate@342aaa2c, nodes.gates.NotGate@6726e99d, nodes.gates.XorGate@4b8681eb]

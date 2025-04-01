@@ -1,159 +1,169 @@
 package connections;
 
-import nodes.Gate;
-import nodes.InputNode;
-import nodes.Placeable;
-import nodes.Wire;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import nodes.*;
+import nodes.gates.Gate;
 
 import java.awt.*;
-import java.awt.geom.Line2D;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
 
+/**
+ * PointChecker is a class with the primary purpose of finding connection points between each node. A HashMap stores Points as keys and an ArrayList of Placeables as values.
+ */
 public class PointChecker {
-    private static final Log log = LogFactory.getLog(PointChecker.class);
 
-    public static Point check(Placeable p, Placeable p2) {
-        if (p instanceof Wire w && p2 instanceof Wire w2) {
-            return wireToWire(w, w2);
-        }
+    HashMap<Point, ArrayList<Placeable>> conMap;
 
-        else if (p instanceof Wire w && p2 instanceof Gate g) {
-            return wireToGate(w, g);
-        }
-        else if (p instanceof Gate g && p2 instanceof Wire w){
-            return wireToGate(w, g);
-        }
-
-        else if (p instanceof InputNode i && p2 instanceof Wire w){
-            return inputNodeToWire(i, w);
-        }
-        else if (p instanceof Wire w && p2 instanceof InputNode i){
-            return inputNodeToWire(i, w);
-        }
-
-        else if (p instanceof InputNode i && p2 instanceof Gate g){
-            return inputNodeToGate(i, g);
-        }
-        else if (p instanceof Gate g && p2 instanceof InputNode i){
-            return inputNodeToGate(i, g);
-        }
-
-        else if (p instanceof Gate g1 && p2 instanceof Gate g2){
-            return gateToGate(g1, g2);
-        }
-
-
-
-        return null;
+    public PointChecker(HashMap<Point, ArrayList<Placeable>> conMap){
+        this.conMap = conMap;
     }
 
-
-
-    public static Point gateToGate(Gate g1, Gate g2) {
-        System.out.println("gateToGate()");
-        int gsv = g1.getGridStepValue();
-        for (Point p : g1.getInputPoints()){
-            if (withinRange(p, g2.getOutputPoint(), gsv)){
-                return p;
-            }
-        }
-        for (Point p : g2.getInputPoints()){
-            if(withinRange(p, g1.getOutputPoint(), gsv)){
-                return p;
-            }
-        }
-        return null;
+    public PointChecker(){
+        this.conMap = new HashMap<>();
     }
 
-    public static Point inputNodeToGate(InputNode i, Gate g) {
-        System.out.println("inputNodeToGate()");
-        for (Point p : i.getOutputPoints()){
-            for (Point p2 : g.getInputPoints()){
-                if (withinRange(p, p2, g.getGridStepValue())){
-                    return p;
+    public HashMap<Point, ArrayList<Placeable>> getConMap() {
+        return conMap;
+    }
+
+    public void setConMap(HashMap<Point, ArrayList<Placeable>> conMap) {
+        this.conMap = conMap;
+    }
+
+    /**
+     * This method removes a node from all ArrayLists it is contained in. If after being removed, a connection list
+     * has a length size less than 2, there are no connections. Thus, the entry is removed from the Map.
+     * @param node: Placeable to be removed from all connections
+     * @param nodes: ArrayList of all Placeables in the currently open file
+     */
+    public void nodeRemoveAllConnections(Placeable node, ArrayList<Placeable> nodes){
+        if (nodes.isEmpty() || Objects.isNull(node)){ // if there are no nodes, it's impossible for there to be any connections.
+            conMap.clear(); // clear the map of connections
+            return;
+        }
+
+        if (!conMap.isEmpty()) { // can't remove connections from an empty map
+            ArrayList<Point> remove = new ArrayList<>(); // list of keys to be removed
+            for (Map.Entry<Point, ArrayList<Placeable>> entry : conMap.entrySet()) { // iterate through each key value pair
+                entry.getValue().remove(node); // remove node from value ArrayList
+                if (entry.getValue().size() < 2){ // Point has no connections the associated list has size < 2
+                    remove.add(entry.getKey());
+                }
+            }
+            for (Point p : remove){
+                conMap.remove(p); // remove entries from the Map
+            }
+        }
+    }
+
+    /**
+     * This method loops through all nodes in the currently opened file, and removes Entries from the HashMap if the value
+     * has a size < 2. This method should never
+     */
+    public void removeNonConnections() {
+        for (Map.Entry<Point, ArrayList<Placeable>> entry : conMap.entrySet()) {
+            if (entry.getValue().size() < 2) {
+                conMap.remove(entry.getKey());
+                throw new RuntimeException("There should never be a Point with a size < 2 in the HashMap.");
+            }
+        }
+    }
+
+    /**
+     * This method checks the connections between a singular input node and every other node on the plane.
+     * If there are any connections, add the newNode to ArrayList associated with that Point
+     * If no Point key already exists, create a new Entry with the Point and ArrayList containing both the current node
+     * and the newNode
+     * @param newNode: Placeable node that has just been created or moved
+     * @param nodes: ArrayList of all Placeables in the currently open file
+     */
+    public void pointNodeCheck(Placeable newNode, ArrayList<Placeable> nodes){
+        if (nodes.isEmpty() || Objects.isNull(newNode)) { // no connections possible if there are no other nodes
+            conMap.clear();
+            return;
+        }
+
+        for (Point p : newNode.getConnectionPoints()){ // iterate over each connection point on the newNode
+            for (Placeable node : nodes){ // iterate over each node in the list of all nodes
+                if (node.equals(newNode)) {
+                    throw new RuntimeException("Grabbed node should not be in the list of all nodes until dropped. " +
+                            "Check that the grabbed node is being removed from the list of all nodes before calling this method.");
+                }
+
+                if (landsOnNode(p, node)){
+                    if (newNode instanceof Wire w1 && node instanceof Wire w2){
+                        if (!wireToWire(w1, w2, p)){ //TODO: weird edge case where if you draw the end point of a wire onto another wire rather than the start point, it doesnt draw a connection point
+                            continue;
+                        }
+                    }
+                    if (conMap.containsKey(p)){
+                        conMap.get(p).add(newNode);
+                    }
+                    else{
+                        ArrayList<Placeable> newList = new ArrayList<>();
+                        newList.add(newNode);
+                        newList.add(node);
+                        conMap.put(p, newList);
+                    }
                 }
             }
         }
-        return null;
-    }
-
-    private static Point inputNodeToWire(InputNode i, Wire w) {
-        System.out.println("inputNodeToWire()");
-        for (Point p : i.getOutputPoints()){
-            if (landsOnWireEnd(p, w)){
-                return p;
-            }
-        }
-        return null;
-    }
-
-    private static Point wireToGate(Wire w, Gate g) {
-        System.out.println("wireToGate()");
-        for (Point p : g.getInputPoints()){
-            if (landsOnWire(p, w)){
-                return p;
-            }
-        }
-        if (landsOnWire(g.getOutputPoint(), w)){
-            return g.getOutputPoint();
-        }
-        return null;
-    }
-
-    private static Point wireToWire(Wire w1, Wire w2) {
-        System.out.println("wireToWire()");
-        // case for endpoint of wire w1 lands on w2
-        for (Point p : w1.getEndPoints()) {
-            if (landsOnWire(p, w2)){
-                return p;
-            }
-        }
-        for (Point p : w2.getEndPoints()) {
-            if (landsOnWire(p, w1)){
-                return p;
-            }
-        }
-        return null;
     }
 
 
 
+    // == Algorithm ==
+    // new node is dropped/completed: if it's an old node being moved, pass in a boolean true, else pass in false
+    // for every possible input/output point on that node
+    // check if the input or output point of another node lands on it
+    // if the node bounds do not intersect, continue
+
+    // if yes, create a pointNode with the newNode and the current node
+    // if the pointNode already exists, add the current node to the pointNode
+
+    // if oldPoints is not null
+    // for old points:
+    // for each PointNode containing newNode, remove newNode from the list
+    // then recheck from newNode new position
 
 
-    private static boolean landsOnWireEnd(Point p, Wire w) {
-        System.out.println("landsOnWireEnd()");
-        for (Point end : w.getEndPoints()) {
-            if (withinRange(p, end, w.getGridStepValue())) {
+
+    public static boolean landsOnNode(Point p, Placeable node){
+        for (Point point : node.getConnectionPoints()){
+            if (point.equals(p)){
                 return true;
             }
         }
         return false;
     }
 
-
-    /**
-     * @param p1 Point to be tested
-     * @param p2 Another Point to be tested
-     * @param gridStepValue current GSV
-     * @return whether the distance between the two points is within an acceptable range (GSV / 3)
-     */
-    private static boolean withinRange(Point p1, Point p2, int gridStepValue){
-        System.out.println("withinRange()");
-        double acceptableRange = gridStepValue / 3d;
-        double dist = Point.distance(p1.x, p1.y, p2.x, p2.y);
-        System.out.println("Testing withinRange: p1=" + p1 + ", p2=" + p2 + ", dist=" + dist + ", acceptable=" + acceptableRange);
-        return dist <= acceptableRange;
+    public static boolean wireToWire(Wire w1, Wire w2, Point p){
+        if (w2.getEndPoints().contains(p)) return true;
+        else {
+            for (Point point : w2.getConnectionPoints()) {
+                if (w1.getEndPoints().contains(point)) return true;
+            }
+        }
+        return false;
     }
 
-    /**
-     * @return if the point lands on the wire
-     */
-    private static boolean landsOnWire(Point point, Wire w) {
-        double acceptableRange = w.getGridStepValue() / 3d;
-        Line2D line = new Line2D.Double(w.getStart(), w.getMidPoint()); // start to mid line
-        Line2D line2 = new Line2D.Double(w.getMidPoint(), w.getEnd());  // mid to end line
-        System.out.println("Testing landsOnWire: " + line.ptSegDist(point) + " mid-end: " + line2.ptSegDist(point));
-        return line.ptSegDist(point) <= acceptableRange || line2.ptSegDist(point) <= acceptableRange;
+    public static Point snapToGrid(Point pos, int gridStepValue) {
+
+        int newX;
+        if ((pos.x % gridStepValue < (int)(gridStepValue / 2f))) { // round down to the nearest valid X position for values 14 or lower
+            newX = pos.x - pos.x % gridStepValue;
+        } else { // round up to the nearest valid X position for values 15 or greater
+            newX = pos.x + (gridStepValue - pos.x % gridStepValue);
+        }
+        int newY;
+        if ((pos.y % gridStepValue < (int)(gridStepValue / 2f))) {
+            newY = pos.y - pos.y % gridStepValue;
+        } else {
+            newY = pos.y + (gridStepValue - pos.y % gridStepValue);
+        }
+
+        return new Point(newX, newY);
     }
 }

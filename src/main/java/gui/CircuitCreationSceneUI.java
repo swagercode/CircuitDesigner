@@ -3,6 +3,8 @@ package gui;
 import connections.PointChecker;
 import fileHandling.FileSaver;
 import nodes.*;
+import nodes.gates.*;
+
 import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.plaf.basic.BasicSliderUI;
@@ -24,6 +26,8 @@ public class CircuitCreationSceneUI extends JFrame implements ActionListener {
     public ArrayList<Placeable> nodes;
 
     private final ArrayList<Point> connectionPoints;
+
+    private final PointChecker pc = new PointChecker();
 
     private Point prevPt;
 
@@ -48,8 +52,6 @@ public class CircuitCreationSceneUI extends JFrame implements ActionListener {
 
     private final File inFile;
 
-    private int radius;
-
     // Each node is given a unique ID upon creation
     private short ID;
 
@@ -65,9 +67,6 @@ public class CircuitCreationSceneUI extends JFrame implements ActionListener {
 
         inFile = Objects.requireNonNull(in);
 
-        // TODO: remove (debugging)
-        System.out.println(inFile.getAbsolutePath());
-
         // if a gridStepValue of 0 is given in the constructor, the default of 100 is used
         if (inGridStep != 0) {
             this.gridStepValue = inGridStep;
@@ -76,8 +75,7 @@ public class CircuitCreationSceneUI extends JFrame implements ActionListener {
         // inNodes is only given when loading a previously saved file, otherwise it should be null
         // If inNodes is not given, assign the nodes ArrayList with a new, empty ArrayList
         nodes = Objects.requireNonNullElse(inNodes, new ArrayList<>());
-        checkConnections();
-        System.out.println(connectionPoints);
+        pc.pointNodeCheck(grabbedNode, nodes); // TODO: fix initial check of all nodes at once
 
 
         // Set up labels and buttons
@@ -173,37 +171,9 @@ public class CircuitCreationSceneUI extends JFrame implements ActionListener {
             }
         });
         scaleSlider.addChangeListener(e -> {
-            // store the current gridStepValue for scaling the node positions later on
             int lastGSV = gridStepValue;
-
-            // set the gridStepValue to the slider position. This is 10 at minimum and 100 at maximum
             gridStepValue = scaleSlider.getValue();
-
-            // Scales the position of the nodes on screen with the new GSV
-            for (Placeable node : nodes) {
-                if (node instanceof Gate || node instanceof InputNode) {
-                    node.setGridStepValue(gridStepValue);
-                    int newX = (int) ((node.getPos().getX() / lastGSV) * gridStepValue);
-                    int newY = (int) ((node.getPos().getY() / lastGSV) * gridStepValue);
-                    node.setPos(Placeable.snapToGrid(new Point(newX, newY), gridStepValue)); // TODO: might be bad to create objects in a for loop like this??
-                }
-                else if (node instanceof Wire wire){
-                    wire.setGridStepValue(gridStepValue);
-                    int startX = (int) ((wire.getPos().getX() / lastGSV) * gridStepValue);
-                    int startY = (int) ((wire.getPos().getY() / lastGSV) * gridStepValue);
-                    int endX = (int) ((wire.getCornerPos().getX() / lastGSV) * gridStepValue);
-                    int endY = (int) ((wire.getCornerPos().getY() / lastGSV) * gridStepValue);
-                    wire.setPos(Placeable.snapToGrid(new Point(startX, startY), gridStepValue));
-                    wire.setCornerPos(Placeable.snapToGrid(new Point(endX, endY), gridStepValue));
-                }
-
-            }
-
-            for (Point point : connectionPoints) {
-                int newX = (int) ((point.getX() / lastGSV) * gridStepValue);
-                int newY = (int) ((point.getY() / lastGSV) * gridStepValue);
-                point.setLocation(new Point(newX, newY));
-            }
+            GridDrawer.gridUpdate(lastGSV, gridStepValue, nodes, pc);
             repaint();
         }); // Scale slider initialization end
 
@@ -372,8 +342,8 @@ public class CircuitCreationSceneUI extends JFrame implements ActionListener {
 
                 GridDrawer.drawGrid(gridStepValue, g2d, createPanel.getWidth(), createPanel.getHeight(), pointScale, GRID_COLOR);
                 GridDrawer.drawNodes(nodes, g2d, grabbedNode);
-                GridDrawer.drawFloaters(newWire, grabbedNode, g2d);
-                GridDrawer.drawConnectionPoints(g2d, gridStepValue, pointScale, connectionPoints, CONNECTION_COLOR);
+                GridDrawer.drawFloater(grabbedNode, g2d);
+                GridDrawer.drawConnectionPoints(g2d, gridStepValue, pointScale, pc.getConMap().keySet(), CONNECTION_COLOR);
             }
         };// End createPanel creation
 
@@ -384,37 +354,11 @@ public class CircuitCreationSceneUI extends JFrame implements ActionListener {
         createPanel.addMouseListener(clickListener);
         createPanel.addMouseMotionListener(dragListener);
     }
-    int wireCount = 0;
-
-
-    /**
-     * clear all the connection points off the screen, then check for new connection points and add them to the ArrayList
-     */
-    public void checkConnections(){ //TODO
-        connectionPoints.clear();
-
-        // check each node in nodes for connections
-        for (int i = 0; i < nodes.size(); i++) {
-            for (int j = i + 1; j < nodes.size(); j++) {
-                System.out.println("Checking pair: " + nodes.get(i).getType() + " -> " + nodes.get(j).getType());
-                Point result = PointChecker.check(nodes.get(i), nodes.get(j));
-                if (result == null) {
-                    System.out.println("No connection found between " + nodes.get(i).getType() + " and " + nodes.get(j).getType());
-                } else {
-                    System.out.println("Found connection point: " + result);
-                    connectionPoints.add(result);
-                }
-
-            }
-        }
-        System.out.println("DEBUGGING CONNECTIONS: " + connectionPoints);
-    }
 
     /** Initialize the grabbedNode as null, a node that is assigned to the node clicked and dragged by the mouse.
     it is re-assigned to null when the mouse is released.
      */
     private Placeable grabbedNode = null;
-    private Wire newWire = null;
     private boolean isDragging = false;
 
     private class ClickListener extends MouseAdapter {
@@ -436,11 +380,13 @@ public class CircuitCreationSceneUI extends JFrame implements ActionListener {
                             // Check if the mouse cursor is within the bounds of the node. If so, assign grabbedNode with that node
                             if (node.getBounds().contains(prevPt)) {
                                 grabbedNode = node;
+                                nodes.remove(grabbedNode); // avoid iterating over itself when checking connections
+                                pc.nodeRemoveAllConnections(grabbedNode, nodes);
                                 isDragging = true;
                                 repaint();
                                 break;
                             }
-                            else {
+                            else if (!Objects.isNull(grabbedNode)){
                                 grabbedNode = null;
                                 isDragging = false;
                                 repaint();
@@ -451,7 +397,7 @@ public class CircuitCreationSceneUI extends JFrame implements ActionListener {
 
                 // IF IN WIRE MODE
                 else if (createPanel.getCursor().getType() == Cursor.CROSSHAIR_CURSOR){
-                    newWire = new Wire(Placeable.snapToGrid(prevPt, gridStepValue), prevPt, gridStepValue, ID++, Wire.ALIGN_TOP);
+                    grabbedNode = new Wire(PointChecker.snapToGrid(prevPt, gridStepValue), prevPt, gridStepValue, ID++, Wire.ALIGN_TOP);
                     isDragging = true;
                     repaint();
                 }
@@ -478,25 +424,26 @@ public class CircuitCreationSceneUI extends JFrame implements ActionListener {
             if (e.getButton() == MouseEvent.BUTTON1) {
 
 
-                if (createPanel.getCursor().getType() == Cursor.DEFAULT_CURSOR) {
-                    // check if grabbedNode is already null, if it is, break out of the function call
-                    if (grabbedNode == null) return;
+                if (createPanel.getCursor().getType() == Cursor.DEFAULT_CURSOR && !Objects.isNull(grabbedNode) && !(grabbedNode instanceof Wire)) {
                     isDragging = false;
                     // snap the grabbedNode to the grid once it's done being dragged
-                    grabbedNode.setPos(Placeable.snapToGrid(grabbedNode.getPos(), gridStepValue));
-
-                    checkConnections();
+                    grabbedNode.setPos(PointChecker.snapToGrid(grabbedNode.getPos(), gridStepValue));
+                    pc.pointNodeCheck(grabbedNode, nodes);
+                    nodes.add(grabbedNode); // add the grabbedNode to the list since it was removed before
+                    grabbedNode = null;
 
                     // repaint to reflect the changes
                     repaint();
                 }
-                else if (createPanel.getCursor().getType() == Cursor.CROSSHAIR_CURSOR){ // n , i , c, 3a, r, g, u TODO: remove
-                    newWire.setEnd(Placeable.snapToGrid(newWire.getEnd(), gridStepValue));
-                    newWire.fixMidPoint();
-                    nodes.add(newWire);
-                    newWire = null;
+                else if (createPanel.getCursor().getType() == Cursor.CROSSHAIR_CURSOR && !Objects.isNull(grabbedNode) && grabbedNode instanceof Wire w){ // n , i , c, 3a, r, g, u TODO: remove
+                    w.setEnd(PointChecker.snapToGrid(w.getEnd(), gridStepValue));
+                    w.fixMidPoint();
+                    if (!w.getEnd().equals(w.getStart())) {
+                        pc.pointNodeCheck(grabbedNode, nodes);
+                        nodes.add(w);
+                    }
+                    w = null;
                     isDragging = false;
-                    checkConnections();
                     repaint();
                 }
             }
@@ -509,17 +456,15 @@ public class CircuitCreationSceneUI extends JFrame implements ActionListener {
             Point currentPt = e.getPoint();
 
             if (isDragging) {
-                if (createPanel.getCursor().getType() == Cursor.CROSSHAIR_CURSOR) {
+                if (createPanel.getCursor().getType() == Cursor.CROSSHAIR_CURSOR && grabbedNode instanceof Wire newWire) {
 
-                    if (newWire != null) {
-                        Point p = newWire.getEnd();
-                        p.translate(
-                                (int) (currentPt.getX() - prevPt.getX()),
-                                (int) (currentPt.getY() - prevPt.getY())
-                        );
-                        newWire.setEnd(p);
-                        repaint();
-                    }
+                    Point p = newWire.getEnd();
+                    p.translate(
+                            (int) (currentPt.getX() - prevPt.getX()),
+                            (int) (currentPt.getY() - prevPt.getY())
+                    );
+                    newWire.setEnd(p);
+                    repaint();
 
                 } else if (createPanel.getCursor().getType() == Cursor.DEFAULT_CURSOR) {
                     // check if mouse is in bounds of any node currently placed. if it is, sets the position of that node to the nearest valid grid space

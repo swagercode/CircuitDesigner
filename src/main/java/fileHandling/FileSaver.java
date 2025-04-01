@@ -4,13 +4,15 @@ import com.opencsv.CSVReader;
 import com.opencsv.exceptions.CsvException;
 import gui.CircuitCreationSceneUI;
 import nodes.*;
+import nodes.gates.AndGate;
+import nodes.gates.NotGate;
+import nodes.gates.OrGate;
+import nodes.gates.XorGate;
 
 import java.awt.*;
 import java.io.*;
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Set;
 
 public class FileSaver {
     public static BufferedWriter writer;
@@ -130,7 +132,7 @@ public class FileSaver {
         writer.write(Integer.toString(gridStepValue));
         writer.newLine();
 
-        // Write the data for each node line by line.
+        // Write the data for each node line by line
         for (Placeable placeable : circuitData) {
             if (placeable instanceof Wire wire){
                 writer.write(wire.getWireData());

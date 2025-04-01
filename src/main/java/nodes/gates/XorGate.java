@@ -1,10 +1,12 @@
-package nodes;
+package nodes.gates;
+
+import nodes.Placeable;
 
 import java.awt.*;
-import java.util.Objects;
+import java.util.ArrayList;
 import java.util.Set;
 
-public class NotGate extends Gate { // TODO: fix all
+public class XorGate extends Gate {
     Point pos;
     Placeable connection;
     int gridStepValue;
@@ -16,7 +18,7 @@ public class NotGate extends Gate { // TODO: fix all
     private Point outputPoint;
     private Set<Point> inputPoints;
 
-    public NotGate(Point p, int gridStepValue, short ID) {
+    public XorGate(Point p, int gridStepValue, short ID) {
         this.gridStepValue = gridStepValue;
         this.pos = p;
         this.ID = ID;
@@ -25,9 +27,19 @@ public class NotGate extends Gate { // TODO: fix all
         inputPoints = Set.of(pos, bottomInputPoint);
     }
 
-    public NotGate() {
+    public XorGate() {
 
     }
+
+    @Override
+    public ArrayList<Point> getConnectionPoints() {
+        ArrayList<Point> points = new ArrayList<>();
+        points.add(pos);
+        points.add(bottomInputPoint);
+        points.add(outputPoint);
+        return points;
+    }
+
 
 
     @Override
@@ -58,26 +70,70 @@ public class NotGate extends Gate { // TODO: fix all
         int overhangY = Math.round(gridStepValue / 3f);
         textureWidth = gridStepValue * 3;
         textureHeight = gridStepValue * 2;
+        Graphics2D g2d = (Graphics2D) g;
 
-        // Draw the head of the NOT gate
-        ((Graphics2D) g).setStroke(new BasicStroke(gridStepValue / 5f));
 
-        int[] xPoints = {pos.x + gridStepValue, pos.x + gridStepValue, pos.x + gridStepValue * 2};
-        int[] yPoints = {pos.y, pos.y + textureHeight, pos.y + gridStepValue};
-        g.setColor(FILL_COLOR);
-        g.fillPolygon(xPoints, yPoints, 3);
-        g.setColor(GATE_COLOR);
-        g.drawPolygon(xPoints, yPoints, 3);
+
+        g2d.setStroke(new BasicStroke(gridStepValue / 5f));
+
+        int diameter = Math.round(textureWidth * 1.5f);
+        int radius = diameter / 2;
+        int x = pos.x - radius;
+        int y = pos.y - radius;
+
+//        g.drawOval(x, y, diameter, diameter);
+//        g.drawOval(x, y + textureHeight, diameter, diameter);
+//        g.drawOval(x - gridStepValue, y + gridStepValue, diameter, diameter);
+
+
+        // Fill arc this is basically trial and error of putting ovals so that they cover the
+        // space and make the gate opaque. It's a weird shape so this may be necessary
+        g2d.setColor(FILL_COLOR);
+
+        //center
+        int ezTweakX = (int)(getPos().x + gridStepValue * 1.2);
+        g2d.fillOval(ezTweakX, getPos().y + gridStepValue / 2, (int)(gridStepValue * .8), gridStepValue);
+
+        // center sides
+        int ezTweakW = (int)(gridStepValue * .6);
+        g2d.fillOval(ezTweakX, getPos().y + gridStepValue / 3, ezTweakW, diameter / 7);
+        g2d.fillOval(ezTweakX, getPos().y + gridStepValue, ezTweakW, diameter / 7);
+
+        // side sides
+        int ezTweakH = (int)(gridStepValue / 2);
+        ezTweakW = (int)(gridStepValue * .4);
+        ezTweakX = (int)(getPos().x + gridStepValue * 1.1);
+        int ezTweakY = (int)(getPos().y + gridStepValue * .1);
+        int ezTweakY2 = (int)(getPos().y + gridStepValue * 1.3);
+        g2d.fillOval(ezTweakX, ezTweakY, ezTweakW, ezTweakH);
+        g2d.fillOval(ezTweakX, ezTweakY2, ezTweakW, ezTweakH);
+        // Arc filling done
+
+        // Draw the top arcs
+        g2d.setColor(GATE_COLOR);
+        int startAngle = 27;
+        int changeAngle = 36;
+        g2d.drawArc(x, y, diameter, diameter, -startAngle, -changeAngle);
+        g2d.drawArc(x, y + textureHeight, diameter, diameter, startAngle, changeAngle);
+        // Draw bottom
+        int bottomAngle = -27; // -24
+        g2d.setStroke(new BasicStroke(gridStepValue / 5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
+        g2d.drawArc(x - gridStepValue, y + gridStepValue, diameter, diameter, bottomAngle, -bottomAngle * 2);
+
+
+        // XOR arc
+        g2d.setStroke(new BasicStroke(gridStepValue / 7f));
+        int stepBack = gridStepValue / 4;
+        g2d.drawArc(x - gridStepValue - stepBack, y + gridStepValue, diameter, diameter, bottomAngle, -bottomAngle * 2);
 
 
         // Draw the two input lines
-        ((Graphics2D) g).setStroke(new BasicStroke(gridStepValue / 10f));
-        g.drawLine(pos.x, pos.y, pos.x + gridStepValue, pos.y);
-        g.drawLine(pos.x, pos.y + 2 * gridStepValue, pos.x + gridStepValue, pos.y + 2 * gridStepValue);
+        g2d.setStroke(new BasicStroke(gridStepValue / 10f));
+        g.drawLine(pos.x, pos.y, pos.x + gridStepValue - stepBack, pos.y);
+        g.drawLine(pos.x, pos.y + 2 * gridStepValue, pos.x + gridStepValue - stepBack, pos.y + 2 * gridStepValue);
 
         // Draw the output line
         g.drawLine(pos.x + 2 * gridStepValue, pos.y + gridStepValue, pos.x + 3 * gridStepValue, pos.y + gridStepValue );
-
 
 
 
@@ -112,7 +168,7 @@ public class NotGate extends Gate { // TODO: fix all
     @Override
     public void setPos(Point newPos) {
         this.pos = newPos;
-        bottomInputPoint = new Point(pos.x + gridStepValue, pos.y + gridStepValue * 2);
+        bottomInputPoint = new Point(pos.x, pos.y + gridStepValue * 2);
         outputPoint = new Point(pos.x + 3 * gridStepValue, pos.y + gridStepValue);
     }
 
@@ -133,12 +189,12 @@ public class NotGate extends Gate { // TODO: fix all
 
     @Override
     public String getType() {
-        return "NOT";
+        return "XOR";
     }
 
     @Override
     public Placeable copy() {
-        NotGate copy = new NotGate();
+        XorGate copy = new XorGate();
         copy.setID(this.ID);
         copy.setValue(this.value);
         copy.setPos(new Point(this.pos));

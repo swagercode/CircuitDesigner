@@ -44,6 +44,8 @@ public abstract class Placeable{
 
     public abstract int getGridStepValue();
 
+    public abstract ArrayList<Point> getConnectionPoints();
+
     /**
      * return the type of the node
      */
@@ -62,23 +64,7 @@ public abstract class Placeable{
             return p.getPos().x / gridStepValue + "," + p.getPos().y / gridStepValue + "," + p.getType() + "," + p.getID() + "," + (p.getOutput() == null ? null : p.getOutput().getID());
     }
 
-    public static Point snapToGrid(Point pos, int gridStepValue) {
 
-            int newX;
-            if ((pos.x % gridStepValue < (int)(gridStepValue / 2f))) { // round down to the nearest valid X position for values 14 or lower
-                newX = pos.x - pos.x % gridStepValue;
-            } else { // round up to the nearest valid X position for values 15 or greater
-                newX = pos.x + (gridStepValue - pos.x % gridStepValue);
-            }
-            int newY;
-            if ((pos.y % gridStepValue < (int)(gridStepValue / 2f))) {
-                newY = pos.y - pos.y % gridStepValue;
-            } else {
-                newY = pos.y + (gridStepValue - pos.y % gridStepValue);
-            }
-
-            return new Point(newX, newY);
-    }
 
 
 }

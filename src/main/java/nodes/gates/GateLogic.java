@@ -1,4 +1,4 @@
-package nodes;
+package nodes.gates;
 
 import java.util.Arrays;
 

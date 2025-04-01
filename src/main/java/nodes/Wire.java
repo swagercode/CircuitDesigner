@@ -1,14 +1,15 @@
 package nodes;
 
 import java.awt.*;
-import java.awt.geom.Line2D;
 import java.util.ArrayList;
 import java.util.Set;
 
 public class Wire extends Placeable{
     private Point start;
+    private Point mid;
     private Point end;
-    private Point midPoint;
+    private Point topLeft;
+    private Point bottomRight;
     private short ID;
     private boolean value;
     private int gridStepValue;
@@ -16,8 +17,8 @@ public class Wire extends Placeable{
     private final Color WIRE_COLOR = new Color(76, 76, 76);
     private ArrayList<Placeable> outputs;
 
-    public static final int ALIGN_TOP = 0; // This means the midPoint will take the Y coordinate of end point and the X coordinate of the start point
-    public static final int ALIGN_BOTTOM = 1; // This means the midPoint will take the X coordinate of end point and the Y coordinate of the start point
+    public static final int ALIGN_TOP = 0; // This means the mid will take the Y coordinate of end point and the X coordinate of the start point
+    public static final int ALIGN_BOTTOM = 1; // This means the mid will take the X coordinate of end point and the Y coordinate of the start point
 
     /**
      * A wire connects two nodes. One end of the wire must be connected to an input, and the other must be connected to
@@ -40,6 +41,9 @@ public class Wire extends Placeable{
         this.ID = ID;
         this.alignment = alignment;
         this.outputs = new ArrayList<>();
+
+        topLeft = new Point(Math.min(start.x, end.x), Math.min(start.y, end.y));
+        bottomRight = new Point(Math.max(start.x, end.x), Math.max(start.y, end.y));
 
         fixMidPoint();
 
@@ -80,14 +84,14 @@ public class Wire extends Placeable{
         return this.start;
     }
 
-    public Point getMidPoint(){return this.midPoint;}
+    public Point getMid(){return this.mid;}
 
 
     public Point getEnd(){
         return this.end;
     }
 
-    
+
 
 
     public ArrayList<Point> getEndPoints(){
@@ -101,12 +105,12 @@ public class Wire extends Placeable{
         if (alignment == ALIGN_TOP){
             int x = start.x;
             int y = end.y;
-            midPoint = new Point(x, y);
+            mid = new Point(x, y);
         }
         else if (alignment == ALIGN_BOTTOM){
             int x = end.x;
             int y = start.y;
-            midPoint = new Point(x, y);
+            mid = new Point(x, y);
         }
     }
 
@@ -155,8 +159,8 @@ public class Wire extends Placeable{
 
         g2d.setColor(GATE_COLOR);
         g2d.setStroke(new BasicStroke(gridStepValue / 10f));
-        g2d.drawLine(start.x, start.y, midPoint.x, midPoint.y);
-        g2d.drawLine(midPoint.x, midPoint.y, end.x, end.y);
+        g2d.drawLine(start.x, start.y, mid.x, mid.y);
+        g2d.drawLine(mid.x, mid.y, end.x, end.y);
     }
 
     @Override
@@ -181,12 +185,12 @@ public class Wire extends Placeable{
 
     @Override
     public Rectangle getBounds() {
-        return null;
+        return new Rectangle(topLeft.x, topLeft.y, bottomRight.x - topLeft.x, bottomRight.y - topLeft.y);
     }
 
     @Override
     public void setPos(Point point) {
-        this.start = point;
+
     }
 
     @Override
@@ -206,6 +210,88 @@ public class Wire extends Placeable{
     @Override
     public int getGridStepValue() {
         return gridStepValue;
+    }
+
+
+    /**
+     * This method returns the ArrayList of connection Points for the wire. A wire is different from other nodes in that
+     * it's connectionPoints are not static. Thus, they must be defined
+     * @return
+     */
+    @Override
+    public ArrayList<Point> getConnectionPoints() {
+        ArrayList<Point> points = new ArrayList<>();
+        if (start.x == mid.x){
+            points.addAll(xSame(start, mid));
+        }
+        else if (start.y == mid.y){
+            points.addAll(ySame(start, mid));
+        }
+        if (mid.x == end.x){
+            points.addAll(xSame(mid,end));
+        }
+        else if (mid.y == end.y){
+            points.addAll(ySame(mid,end));
+        }
+        return points;
+    }
+
+    /**
+     * Returns the list of all grid Points on a line, assuming the Y coordinate of the line is constant.
+     * Return all Points such the X coordinate % gsv == 0, and the X coordinate is > start or < end
+     * @param start: Point at the beginning of the line
+     * @param end: Point at the end of the line
+     * @return: ArrayList containing all grid Points on the line
+     */
+    private ArrayList<Point> ySame(Point start, Point end){
+        ArrayList<Point> points = new ArrayList<>();
+        int n = (end.x - start.x) / this.gridStepValue; // the number of grid Points on a line
+        /*
+        It is possible for a line to have an end point further to the left than the start point.
+        If that is the case, the distance between the two X-coordinates will be negative.
+         */
+        int sign = (int) Math.signum(n); // -1 if the distance is negative, 1 if it is positive
+        /*
+        Iterate over the range of the number of grid Points in the line.
+        Starting at 0, the first grid Point will have an X-coordinate defined by the start of that line, plus the index
+        of that Point in the range, multiplied with the gsv, multiplied with the sign. If the sign is negative, that
+        means the Point iterates one grid square to the left and vice versa.
+
+        The Y-coordinate will always be a constant here.
+         */
+        for (int i = 0; i <= n; i++){
+            points.add(new Point(start.x + (i * this.gridStepValue * sign), end.y));
+        }
+        return points;
+    }
+
+    /**
+     * Returns the list of all grid Points on a line, assuming the X coordinate of the line is constant.
+     * Return all Points such the X coordinate % gsv == 0, and the Y coordinate is > start or < end
+     * @param start: Point at the beginning of the line
+     * @param end: Point at the end of the line
+     * @return: ArrayList containing all grid Points on the line
+     */
+    private ArrayList<Point> xSame(Point start, Point end){
+        ArrayList<Point> points = new ArrayList<>();
+        int n = (end.y - start.y) / this.gridStepValue; // the number of grid Points on a line
+        /*
+        It is possible for a line to have an end point higher than the start point.
+        If that is the case, the distance between the two Y-coordinates will be negative.
+         */
+        int sign = (int) Math.signum(n); // -1 if the distance is negative, 1 if it is positive
+        /*
+        Iterate over the range of the number of grid Points in the line.
+        Starting at 0, the first grid Point will have a Y-coordinate defined by the start of that line, plus the index
+        of that Point in the range, multiplied with the gsv, multiplied with the sign. If the sign is negative, that
+        means the Point iterates one grid square higher and vice versa.
+
+        The X-coordinate will always be a constant here.
+         */
+        for (int i = 0; i <= n; i++){
+            points.add(new Point(end.x, start.y + (i * this.gridStepValue * sign)));
+        }
+        return points;
     }
 
     @Override
