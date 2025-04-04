@@ -16,6 +16,7 @@ public class Wire extends Placeable{
     private int alignment;
     private final Color WIRE_COLOR = new Color(76, 76, 76);
     private ArrayList<Placeable> outputs;
+    private int scalar;
 
     public static final int ALIGN_TOP = 0; // This means the mid will take the Y coordinate of end point and the X coordinate of the start point
     public static final int ALIGN_BOTTOM = 1; // This means the mid will take the X coordinate of end point and the Y coordinate of the start point
@@ -41,6 +42,7 @@ public class Wire extends Placeable{
         this.ID = ID;
         this.alignment = alignment;
         this.outputs = new ArrayList<>();
+        this.scalar = gridStepValue / 3;
 
         topLeft = new Point(Math.min(start.x, end.x), Math.min(start.y, end.y));
         bottomRight = new Point(Math.max(start.x, end.x), Math.max(start.y, end.y));
@@ -78,6 +80,8 @@ public class Wire extends Placeable{
 
     public void setEnd(Point end){
         this.end = end;
+        fixMidPoint();
+        fixCorners();
     }
 
     public Point getStart(){
@@ -91,7 +95,12 @@ public class Wire extends Placeable{
         return this.end;
     }
 
-
+    public void fixCorners(){
+        topLeft.x = Math.min(start.x, end.x);
+        topLeft.y = Math.min(start.y, end.y);
+        bottomRight.x = Math.max(start.x, end.x);
+        bottomRight.y = Math.max(start.y, end.y);
+    }
 
 
     public ArrayList<Point> getEndPoints(){
@@ -165,7 +174,9 @@ public class Wire extends Placeable{
 
     @Override
     public void paintSelected(Graphics g) {
-
+        Graphics2D g2d = (Graphics2D) g;
+        g2d.setColor(SELECTED_COLOR);
+        g2d.drawRect(getBounds().x, getBounds().y, getBounds().width, getBounds().height);
     }
 
     @Override
@@ -183,14 +194,20 @@ public class Wire extends Placeable{
         fixMidPoint();
     }
 
+
     @Override
     public Rectangle getBounds() {
-        return new Rectangle(topLeft.x, topLeft.y, bottomRight.x - topLeft.x, bottomRight.y - topLeft.y);
+        return new Rectangle(topLeft.x - scalar, topLeft.y - scalar, bottomRight.x - topLeft.x + 2 * scalar, bottomRight.y - topLeft.y + 2 * scalar);
     }
 
     @Override
     public void setPos(Point point) {
-
+        int distX = point.x - this.start.x;
+        int distY = point.y - this.start.y;
+        this.start.translate(distX, distY);
+        this.end.translate(distX, distY);
+        fixMidPoint();
+        fixCorners();
     }
 
     @Override
@@ -205,6 +222,7 @@ public class Wire extends Placeable{
     @Override
     public void setGridStepValue(int gridStepValue) {
         this.gridStepValue = gridStepValue;
+        scalar = gridStepValue / 3;
     }
 
     @Override
@@ -309,6 +327,7 @@ public class Wire extends Placeable{
         copy.setGridStepValue(gridStepValue);
         copy.setAlignment(alignment);
         copy.setOutputs(outputs);
+        copy.setPos(copy.getPos());
         return copy;
     }
 }

@@ -12,9 +12,9 @@ public abstract class Placeable{
      * @param g
      */
 
-    public final Color GATE_COLOR = new Color(76, 76, 76);
-    public final Color FILL_COLOR = new Color(227, 227, 227);
-    public final Color SELECTED_COLOR = new Color(196, 248, 253);
+    public final Color GATE_COLOR = new Color(94, 92, 92);
+    public final Color FILL_COLOR = new Color(201, 201, 201);
+    public final Color SELECTED_COLOR = new Color(243, 211, 189);
 
     public abstract void setID(short id);
 

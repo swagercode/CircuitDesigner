@@ -7,15 +7,15 @@ import nodes.Placeable;
 import nodes.Wire;
 
 import java.awt.*;
-import java.lang.reflect.Array;
 import java.util.*;
 
 public class GridDrawer {
 
     public GridDrawer(){}
 
-    public static void drawGrid(int gridStepValue, Graphics2D g, int width, int height, int radScale, Color gridColor){
-        g.setStroke(new BasicStroke(2));
+    public static void drawGrid(int gridStepValue, Graphics2D g, int width, int height, int radScale, int strokeScale, Color gridColor){
+        int stroke = gridStepValue / strokeScale;
+        g.setStroke(new BasicStroke(stroke));
         g.setColor(gridColor);
         // Draw the grid
         for (int i = 0; i <= width; i += gridStepValue) {
@@ -48,31 +48,23 @@ public class GridDrawer {
             if (Objects.isNull(point)) continue;
             g.fillOval(point.x - rad / 2, point.y - rad / 2, rad, rad);
         }
-
-
                 /* Paint a rectangle around the grabbed node. Also paint it separately so that it doesn't snap to the
                 grid til grabbedNode is released.
                  */
-
     }
 
-    public static void drawNodes(ArrayList<Placeable> nodes, Graphics2D g, Placeable grabbedNode){
+    /**
+     * Loops through each node and draws it. This does not include the grabbedNode
+     * @param nodes
+     * @param g
+     */
+    public static void drawNodes(ArrayList<Placeable> nodes, Placeable grabbedNode,  Graphics2D g){
         for (Placeable node : nodes) {
-            if (!node.equals(grabbedNode)) {
                 node.paint(g);
-            }
         }
-    }
-
-    public static void drawFloater(Placeable grabbedNode, Graphics2D g){
-        if (!Objects.isNull(grabbedNode)) {
-            if (grabbedNode instanceof Wire newWire) {
-                newWire.paint(g);
-            } else {
-                grabbedNode.paint(g);
-                grabbedNode.paintSelected(g);
-            }
-        }
+        if (grabbedNode == null) return;
+        grabbedNode.paintSelected(g);
+        grabbedNode.paint(g);
     }
 
     public static void gridUpdate(int lastGSV, int newGSV, ArrayList<Placeable> nodes, PointChecker pc){
@@ -81,9 +73,9 @@ public class GridDrawer {
             updateNode(node, lastGSV, newGSV);
         }
 
-        HashMap<Point, ArrayList<Placeable>> newConMap = new HashMap<>();
+        HashMap<Point, Set<Placeable>> newConMap = new HashMap<>();
         for (Point key : pc.getConMap().keySet()){
-            ArrayList<Placeable> list = pc.getConMap().get(key);
+            Set<Placeable> list = pc.getConMap().get(key);
             int newX = (key.x / lastGSV) * newGSV;
             int newY = (key.y / lastGSV) * newGSV;
             Point p = PointChecker.snapToGrid(new Point(newX, newY), newGSV);
@@ -114,6 +106,7 @@ public class GridDrawer {
             wire.setStart(PointChecker.snapToGrid(new Point(startX, startY), newGSV));
             wire.setEnd(PointChecker.snapToGrid(new Point(endX, endY), newGSV));
             wire.fixMidPoint();
+            wire.fixCorners();
         }
     }
 }

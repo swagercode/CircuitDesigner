@@ -1,22 +1,18 @@
 package connections;
 
 import nodes.*;
-import nodes.gates.Gate;
 
 import java.awt.*;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 /**
  * PointChecker is a class with the primary purpose of finding connection points between each node. A HashMap stores Points as keys and an ArrayList of Placeables as values.
  */
 public class PointChecker {
 
-    HashMap<Point, ArrayList<Placeable>> conMap;
+    HashMap<Point, Set<Placeable>> conMap;
 
-    public PointChecker(HashMap<Point, ArrayList<Placeable>> conMap){
+    public PointChecker(HashMap<Point, Set<Placeable>> conMap){
         this.conMap = conMap;
     }
 
@@ -24,11 +20,11 @@ public class PointChecker {
         this.conMap = new HashMap<>();
     }
 
-    public HashMap<Point, ArrayList<Placeable>> getConMap() {
+    public HashMap<Point, Set<Placeable>> getConMap() {
         return conMap;
     }
 
-    public void setConMap(HashMap<Point, ArrayList<Placeable>> conMap) {
+    public void setConMap(HashMap<Point, Set<Placeable>> conMap) {
         this.conMap = conMap;
     }
 
@@ -46,7 +42,7 @@ public class PointChecker {
 
         if (!conMap.isEmpty()) { // can't remove connections from an empty map
             ArrayList<Point> remove = new ArrayList<>(); // list of keys to be removed
-            for (Map.Entry<Point, ArrayList<Placeable>> entry : conMap.entrySet()) { // iterate through each key value pair
+            for (Map.Entry<Point, Set<Placeable>> entry : conMap.entrySet()) { // iterate through each key value pair
                 entry.getValue().remove(node); // remove node from value ArrayList
                 if (entry.getValue().size() < 2){ // Point has no connections the associated list has size < 2
                     remove.add(entry.getKey());
@@ -63,7 +59,7 @@ public class PointChecker {
      * has a size < 2. This method should never
      */
     public void removeNonConnections() {
-        for (Map.Entry<Point, ArrayList<Placeable>> entry : conMap.entrySet()) {
+        for (Map.Entry<Point, Set<Placeable>> entry : conMap.entrySet()) {
             if (entry.getValue().size() < 2) {
                 conMap.remove(entry.getKey());
                 throw new RuntimeException("There should never be a Point with a size < 2 in the HashMap.");
@@ -89,10 +85,10 @@ public class PointChecker {
             for (Placeable node : nodes){ // iterate over each node in the list of all nodes
                 if (node.equals(newNode)) {
                     throw new RuntimeException("Grabbed node should not be in the list of all nodes until dropped. " +
-                            "Check that the grabbed node is being removed from the list of all nodes before calling this method.");
+                            "\n    Check that the grabbed node is being removed from the list of all nodes before calling this method.");
                 }
 
-                if (landsOnNode(p, node)){
+                if (landsOnNode(p, node)){ //TODO: if a wire is connected to a node before being moved, move that wire with the node
                     if (newNode instanceof Wire w1 && node instanceof Wire w2){
                         if (!wireToWire(w1, w2, p)){ //TODO: weird edge case where if you draw the end point of a wire onto another wire rather than the start point, it doesnt draw a connection point
                             continue;
@@ -102,7 +98,7 @@ public class PointChecker {
                         conMap.get(p).add(newNode);
                     }
                     else{
-                        ArrayList<Placeable> newList = new ArrayList<>();
+                        Set<Placeable> newList = new HashSet<>();
                         newList.add(newNode);
                         newList.add(node);
                         conMap.put(p, newList);
@@ -129,6 +125,23 @@ public class PointChecker {
     // then recheck from newNode new position
 
 
+    /**
+     * iterate over each node and return the node whose bounds the point lands on. If no node exists to fit that requirement,
+     * null is returned
+     * @param nodes ArrayList of all Placeable nodes
+     * @param p given Point
+     * @return node whose bounds Point p lands on, otherwise null
+     */
+    public static Placeable nodesBoundsCheck(ArrayList<Placeable> nodes, Point p){
+        if (nodes.isEmpty() || Objects.isNull(p)) return null;
+        for (Placeable node : nodes) {
+            // Check if the mouse cursor is within the bounds of the node. If so, assign grabbedNode with that node
+            if (node.getBounds().contains(p)) {
+                return node;
+            }
+        }
+        return null;
+    }
 
     public static boolean landsOnNode(Point p, Placeable node){
         for (Point point : node.getConnectionPoints()){

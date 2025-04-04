@@ -80,10 +80,9 @@ public class AndGate extends Gate {
         // Debugging
 
 
-        g.setColor(GATE_COLOR);
+        g.setColor(FILL_COLOR);
         // Draw the head of the AND gate
         ((Graphics2D) g).setStroke(new BasicStroke(gridStepValue / 5f));
-        g.setColor(new Color(227, 227, 227));
         g.fillArc(pos.x, pos.y - overhangY, gridStepValue * 2, 2 * overhangY + gridStepValue * 2, 90, -180); // TODO: allow rotation by changing the angle. Can be rotated by top toolbar or by right click menu
         g.setColor(GATE_COLOR);
         g.drawArc(pos.x, pos.y - overhangY, gridStepValue * 2, 2 * overhangY + gridStepValue * 2, 90, -180); // TODO: allow rotation by changing the angle. Can be rotated by top toolbar or by right click menu

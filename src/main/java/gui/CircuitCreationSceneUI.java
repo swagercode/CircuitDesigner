@@ -17,10 +17,10 @@ import java.util.*;
 
 
 public class CircuitCreationSceneUI extends JFrame implements ActionListener {
-    public final Color BG_COLOR = new Color(244, 244, 249);
-    public final Color GRID_COLOR = new Color(199, 199, 199, 255);
-    public final Color SIDE_PANEL_COLOR = new Color(88, 111, 124);
-    public final Color CONNECTION_COLOR = new Color(100, 127, 213);
+    public final Color BG_COLOR = new Color(252, 250, 249);
+    public final Color GRID_COLOR = new Color(190, 190, 190, 255);
+    public final Color SIDE_PANEL_COLOR = new Color(222, 219, 217);
+    public final Color CONNECTION_COLOR = new Color(243, 211, 189);
 
     public int gridStepValue;
     public ArrayList<Placeable> nodes;
@@ -267,13 +267,9 @@ public class CircuitCreationSceneUI extends JFrame implements ActionListener {
         popup.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
     }
 
-
-
-
+    private final Point defaultPoint = new Point(5 * gridStepValue, 5 * gridStepValue);
     @Override
     public void actionPerformed(ActionEvent e) {
-
-        Point defaultPoint = new Point(5 * gridStepValue, 5 * gridStepValue);
         // Depending on the button pressed, create a new node of that type and add it to the ArrayList of nodes.
         // These are the nodes seen on screen and saved into file storage
         if (e.getSource() == ANDButton) {
@@ -328,31 +324,33 @@ public class CircuitCreationSceneUI extends JFrame implements ActionListener {
 
     }
 
+    private final int pointScale = 5; // this is the scale of the grid points (GSV / pointScale) TODO: settings
+    private final int lineScale = 10; // this is for the grid lines
 
-    private final int pointScale = 5;
     private void createUIComponents() {
         // Create the createPanel with custom paintComponent
         createPanel = new JPanel() {
-
-
             @Override
             protected void paintComponent(Graphics g) {
                 super.paintComponent(g);
                 Graphics2D g2d = (Graphics2D) g;
 
-                GridDrawer.drawGrid(gridStepValue, g2d, createPanel.getWidth(), createPanel.getHeight(), pointScale, GRID_COLOR);
-                GridDrawer.drawNodes(nodes, g2d, grabbedNode);
-                GridDrawer.drawFloater(grabbedNode, g2d);
+                GridDrawer.drawGrid(gridStepValue, g2d, createPanel.getWidth(), createPanel.getHeight(), pointScale, lineScale, GRID_COLOR);
+                GridDrawer.drawNodes(nodes, grabbedNode, g2d);
+//                GridDrawer.drawFloater(grabbedNode, g2d);
                 GridDrawer.drawConnectionPoints(g2d, gridStepValue, pointScale, pc.getConMap().keySet(), CONNECTION_COLOR);
             }
-        };// End createPanel creation
+        };
 
 
-        // Add and initialize the mouse listeners for dragging and dropping
+        // Add and initialize the mouse listeners for dragging, dropping, and scrolling
         ClickListener clickListener = new ClickListener();
         DragListener dragListener = new DragListener();
         createPanel.addMouseListener(clickListener);
         createPanel.addMouseMotionListener(dragListener);
+        createPanel.addMouseWheelListener(e -> {
+            scaleSlider.setValue(scaleSlider.getValue() + 2 * e.getWheelRotation());
+        });
     }
 
     /** Initialize the grabbedNode as null, a node that is assigned to the node clicked and dragged by the mouse.
@@ -360,7 +358,7 @@ public class CircuitCreationSceneUI extends JFrame implements ActionListener {
      */
     private Placeable grabbedNode = null;
     private boolean isDragging = false;
-
+    private final ContextMenu menu = new ContextMenu();
     private class ClickListener extends MouseAdapter {
 
         /**
@@ -371,31 +369,25 @@ public class CircuitCreationSceneUI extends JFrame implements ActionListener {
                 // prevPt is the initial position of the mouse when the mouse is clicked
                 prevPt = e.getPoint();
 
-                // IF IN SELECT MODE
-                // iterate over each node in the nodes ArrayList
+                //  == IF IN SELECT MODE ==
+                // checks if the mouse is over any of the nodes, and grabs that node if there is one
                 if (createPanel.getCursor().getType() == Cursor.DEFAULT_CURSOR){
-                    for (Placeable node : nodes) {
-                        if (node instanceof Gate || node instanceof InputNode) {
-
-                            // Check if the mouse cursor is within the bounds of the node. If so, assign grabbedNode with that node
-                            if (node.getBounds().contains(prevPt)) {
-                                grabbedNode = node;
-                                nodes.remove(grabbedNode); // avoid iterating over itself when checking connections
-                                pc.nodeRemoveAllConnections(grabbedNode, nodes);
-                                isDragging = true;
-                                repaint();
-                                break;
-                            }
-                            else if (!Objects.isNull(grabbedNode)){
-                                grabbedNode = null;
-                                isDragging = false;
-                                repaint();
-                            }
-                        }
+                    if (grabbedNode != null) {
+                        nodes.add(grabbedNode);
                     }
+                    grabbedNode = PointChecker.nodesBoundsCheck(nodes, prevPt);
+                    isDragging = grabbedNode != null;
+                    if (isDragging){
+                        nodes.remove(grabbedNode);
+                        pc.nodeRemoveAllConnections(grabbedNode, nodes);
+                    }
+
+                    repaint();
+
                 }
 
-                // IF IN WIRE MODE
+
+                // == IF IN WIRE MODE ==
                 else if (createPanel.getCursor().getType() == Cursor.CROSSHAIR_CURSOR){
                     grabbedNode = new Wire(PointChecker.snapToGrid(prevPt, gridStepValue), prevPt, gridStepValue, ID++, Wire.ALIGN_TOP);
                     isDragging = true;
@@ -406,7 +398,11 @@ public class CircuitCreationSceneUI extends JFrame implements ActionListener {
             } // TODO: when grabbedNode is released as another is instantly picked up, the previous node does not snap to the grid
 
             else if (SwingUtilities.isRightMouseButton(e)){
-                ContextMenu menu = new ContextMenu();
+                grabbedNode = PointChecker.nodesBoundsCheck(nodes, e.getPoint());
+                if (grabbedNode != null){
+                    nodes.remove(grabbedNode);
+                    pc.nodeRemoveAllConnections(grabbedNode, nodes);
+                }
                 menu.show(createPanel, e.getX(), e.getY());
 
             }
@@ -424,17 +420,17 @@ public class CircuitCreationSceneUI extends JFrame implements ActionListener {
             if (e.getButton() == MouseEvent.BUTTON1) {
 
 
-                if (createPanel.getCursor().getType() == Cursor.DEFAULT_CURSOR && !Objects.isNull(grabbedNode) && !(grabbedNode instanceof Wire)) {
-                    isDragging = false;
-                    // snap the grabbedNode to the grid once it's done being dragged
+                // == SELECT MODE ==
+                if (createPanel.getCursor().getType() == Cursor.DEFAULT_CURSOR && !Objects.isNull(grabbedNode)){
                     grabbedNode.setPos(PointChecker.snapToGrid(grabbedNode.getPos(), gridStepValue));
                     pc.pointNodeCheck(grabbedNode, nodes);
-                    nodes.add(grabbedNode); // add the grabbedNode to the list since it was removed before
+                    nodes.add(grabbedNode);
                     grabbedNode = null;
-
-                    // repaint to reflect the changes
+                    isDragging = false;
                     repaint();
                 }
+
+                // == WIRE MODE ==
                 else if (createPanel.getCursor().getType() == Cursor.CROSSHAIR_CURSOR && !Objects.isNull(grabbedNode) && grabbedNode instanceof Wire w){ // n , i , c, 3a, r, g, u TODO: remove
                     w.setEnd(PointChecker.snapToGrid(w.getEnd(), gridStepValue));
                     w.fixMidPoint();
@@ -442,7 +438,7 @@ public class CircuitCreationSceneUI extends JFrame implements ActionListener {
                         pc.pointNodeCheck(grabbedNode, nodes);
                         nodes.add(w);
                     }
-                    w = null;
+                    grabbedNode = null;
                     isDragging = false;
                     repaint();
                 }
@@ -456,38 +452,50 @@ public class CircuitCreationSceneUI extends JFrame implements ActionListener {
             Point currentPt = e.getPoint();
 
             if (isDragging) {
+                // == WIRE MODE ==
                 if (createPanel.getCursor().getType() == Cursor.CROSSHAIR_CURSOR && grabbedNode instanceof Wire newWire) {
-
-                    Point p = newWire.getEnd();
-                    p.translate(
+                    // translate the end point by the mouse movement
+                    newWire.getEnd().translate(
                             (int) (currentPt.getX() - prevPt.getX()),
                             (int) (currentPt.getY() - prevPt.getY())
                     );
-                    newWire.setEnd(p);
                     repaint();
+                }
 
-                } else if (createPanel.getCursor().getType() == Cursor.DEFAULT_CURSOR) {
+                // == SELECT MODE ==
+                else if (createPanel.getCursor().getType() == Cursor.DEFAULT_CURSOR) {
                     // check if mouse is in bounds of any node currently placed. if it is, sets the position of that node to the nearest valid grid space
                     if (grabbedNode != null) {
-                        // get the current position of the placeable node
-                        Point p = grabbedNode.getPos();
 
-                        // translate the temporary point to the mouse position
-                        p.translate(
-                                (int) (currentPt.getX() - prevPt.getX()),
-                                (int) (currentPt.getY() - prevPt.getY())
-                        );
+                        // DRAGGING WIRE
+                        if (grabbedNode instanceof Wire w) {
+                            w.getStart().translate(
+                                    (int) (currentPt.getX() - prevPt.getX()),
+                                    (int) (currentPt.getY() - prevPt.getY())
+                            ); // translate the start and end of the wire by the mouse movement
+                            w.getEnd().translate(
+                                    (int) (currentPt.getX() - prevPt.getX()),
+                                    (int) (currentPt.getY() - prevPt.getY())
+                            );
+                            w.fixMidPoint();
+                            w.fixCorners();
+                        }
 
+                        // DRAGGING NORMAL NODE
+                        else {
+                            // translate the temporary point to the mouse position
+                            grabbedNode.getPos().translate(
+                                    (int) (currentPt.getX() - prevPt.getX()),
+                                    (int) (currentPt.getY() - prevPt.getY())
+                            );
 
-                        // sets the position to the nearest grid spot
-                        grabbedNode.setPos(p);
+                        }
+
                     }
-
                     // the current point becomes the previous point, yielding a smooth change in value
                     prevPt = currentPt;
                 }
             }
-
             // repaint to reflect changes
             repaint();
         }
