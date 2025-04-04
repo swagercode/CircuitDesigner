@@ -162,6 +162,17 @@ public class PointChecker {
         return false;
     }
 
+    public static Point randPointNotNode(ArrayList<Placeable> nodes, int gridStepValue){
+        int x = (int)(Math.random() * (gridStepValue * 10));
+        int y = (int)(Math.random() * (gridStepValue * 10));
+        Point p = snapToGrid(new Point(x, y), gridStepValue);
+        for (Placeable node : nodes) {
+            if (node.getBounds().contains(p)) continue;
+            return p;
+        }
+        throw new RuntimeException("No valid point found. This should never happen. Please report this bug to the developer.");
+    }
+
     public static Point snapToGrid(Point pos, int gridStepValue) {
 
         int newX;

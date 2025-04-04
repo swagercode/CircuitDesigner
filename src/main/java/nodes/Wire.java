@@ -319,15 +319,8 @@ public class Wire extends Placeable{
 
     @Override
     public Placeable copy() {
-        Wire copy = new Wire();
-        copy.setID(ID);
-        copy.setValue(value);
-        copy.setStart(new Point(start));
-        copy.setEnd(new Point(end));
-        copy.setGridStepValue(gridStepValue);
-        copy.setAlignment(alignment);
-        copy.setOutputs(outputs);
-        copy.setPos(copy.getPos());
-        return copy;
+        return new Wire(new Point(this.start.x + 2 * gridStepValue, this.start.y + 2 * gridStepValue)
+                , new Point(this.end.x + 2 * gridStepValue, this.end.y + 2 * gridStepValue)
+                , this.gridStepValue, this.ID, this.alignment);
     }
 }

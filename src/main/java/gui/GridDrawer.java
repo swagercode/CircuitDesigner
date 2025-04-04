@@ -67,11 +67,13 @@ public class GridDrawer {
         grabbedNode.paint(g);
     }
 
-    public static void gridUpdate(int lastGSV, int newGSV, ArrayList<Placeable> nodes, PointChecker pc){
+    public static void gridUpdate(int lastGSV, int newGSV, ArrayList<Placeable> nodes, Placeable grabbedNode, PointChecker pc){
         // Scales the position of the nodes on screen with the new GSV
         for (Placeable node : nodes) {
             updateNode(node, lastGSV, newGSV);
         }
+
+        if (grabbedNode != null) updateNode(grabbedNode, lastGSV, newGSV);
 
         HashMap<Point, Set<Placeable>> newConMap = new HashMap<>();
         for (Point key : pc.getConMap().keySet()){

@@ -173,7 +173,7 @@ public class CircuitCreationSceneUI extends JFrame implements ActionListener {
         scaleSlider.addChangeListener(e -> {
             int lastGSV = gridStepValue;
             gridStepValue = scaleSlider.getValue();
-            GridDrawer.gridUpdate(lastGSV, gridStepValue, nodes, pc);
+            GridDrawer.gridUpdate(lastGSV, gridStepValue, nodes, grabbedNode, pc);
             repaint();
         }); // Scale slider initialization end
 
@@ -267,25 +267,29 @@ public class CircuitCreationSceneUI extends JFrame implements ActionListener {
         popup.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
     }
 
-    private final Point defaultPoint = new Point(5 * gridStepValue, 5 * gridStepValue);
+    private Point spawnPoint = new Point(5 * gridStepValue, 5 * gridStepValue);
     @Override
     public void actionPerformed(ActionEvent e) {
         // Depending on the button pressed, create a new node of that type and add it to the ArrayList of nodes.
         // These are the nodes seen on screen and saved into file storage
+        if (e.getSource() == ANDButton || e.getSource() == ORButton || e.getSource() == NOTButton || e.getSource() == XORButton && nodes != null && !nodes.isEmpty()) {
+            spawnPoint = PointChecker.randPointNotNode(nodes, gridStepValue);
+        }
+
         if (e.getSource() == ANDButton) {
-            nodes.addFirst(new AndGate(defaultPoint, gridStepValue, ID++));
+            nodes.addFirst(new AndGate(spawnPoint, gridStepValue, ID++));
             repaint();
         } else if (e.getSource() == ORButton) {
-            nodes.addFirst(new OrGate(defaultPoint, gridStepValue, ID++));
+            nodes.addFirst(new OrGate(spawnPoint, gridStepValue, ID++));
             repaint();
         } else if (e.getSource() == NOTButton) {
-            nodes.addFirst(new NotGate(defaultPoint, gridStepValue, ID++));
+            nodes.addFirst(new NotGate(spawnPoint, gridStepValue, ID++));
             repaint();
         } else if (e.getSource() == XORButton) {
-            nodes.addFirst(new XorGate(defaultPoint, gridStepValue, ID++));
+            nodes.addFirst(new XorGate(spawnPoint, gridStepValue, ID++));
             repaint();
         } else if (e.getSource() == inputButton) {
-            nodes.addFirst(new InputNode(defaultPoint, gridStepValue, ID++, true));
+            nodes.addFirst(new InputNode(spawnPoint, gridStepValue, ID++, true));
             repaint();
         } else if (e.getSource() == lightButton) {
             //TODO
@@ -350,6 +354,7 @@ public class CircuitCreationSceneUI extends JFrame implements ActionListener {
         createPanel.addMouseMotionListener(dragListener);
         createPanel.addMouseWheelListener(e -> {
             scaleSlider.setValue(scaleSlider.getValue() + 2 * e.getWheelRotation());
+
         });
     }
 
