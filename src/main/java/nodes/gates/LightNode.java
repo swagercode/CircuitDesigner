@@ -1,12 +1,13 @@
-package nodes;
+package nodes.gates;
 
 
 import gui.MenuButton;
+import nodes.Placeable;
 
 import java.awt.*;
 import java.util.ArrayList;
 
-public class InputNode extends Placeable{
+public class LightNode extends Placeable {
     Point pos;
     Placeable output;
     int gridStepValue;
@@ -16,15 +17,14 @@ public class InputNode extends Placeable{
     private boolean value;
     private ArrayList<Placeable> outputs;
 
-    public InputNode(Point p, int gridStepValue, short ID, boolean inValue) {
+    public LightNode(Point p, int gridStepValue, short ID) {
         this.gridStepValue = gridStepValue;
         this.pos = p;
         this.ID = ID;
-        this.value = inValue;
         outputs  = new ArrayList<>();
     }
 
-    public InputNode() {
+    public LightNode() {
 
     }
 
@@ -45,8 +45,8 @@ public class InputNode extends Placeable{
         return value;
     }
 
-    public String getInputNodeData(){
-        StringBuilder output = new StringBuilder(pos.x / gridStepValue + "," + pos.y / gridStepValue + "," + "INPUT" + "," + ID);
+    public String getOutputNodeData(){
+        StringBuilder output = new StringBuilder(pos.x / gridStepValue + "," + pos.y / gridStepValue + "," + "LIGHT" + "," + ID);
         for (Placeable p : outputs){
             output.append(",").append(p.getID());
         }
@@ -65,25 +65,12 @@ public class InputNode extends Placeable{
 
     @Override
     public void paint(Graphics g) {
-        textureWidth = gridStepValue;
-        textureHeight = gridStepValue;
-
         Graphics2D g2d = (Graphics2D) g;
-        g2d.setColor(FILL_COLOR);
-        g2d.fillRect(pos.x, pos.y, textureWidth, textureHeight);
-
         g2d.setStroke(new BasicStroke(gridStepValue / 5f));
         g2d.setColor(GATE_COLOR);
         g2d.drawRect(pos.x, pos.y, textureWidth, textureHeight);
-
-        g2d.setFont(MenuButton.BUTTON_FONT.deriveFont(Font.PLAIN, (int)(gridStepValue * 0.85)));
-        int textOffsetX = gridStepValue / 4;
-        int textOffsetY = (int)(gridStepValue * 0.8);
-
-        if(value) {
-            g2d.drawString("1", pos.x + textOffsetX, pos.y + textOffsetY);
-        }
-        else {g2d.drawString("0", pos.x + textOffsetX, pos.y + textOffsetY);}
+        g2d.setColor(FILL_COLOR);
+        g2d.fillRect(pos.x, pos.y, textureWidth, textureHeight);
     }
 
     @Override
@@ -153,7 +140,7 @@ public class InputNode extends Placeable{
 
     @Override
     public Placeable copy() {
-        InputNode copy = new InputNode();
+        LightNode copy = new LightNode();
         copy.setID(this.ID);
         copy.setValue(this.value);
         copy.setPos(new Point(this.pos));

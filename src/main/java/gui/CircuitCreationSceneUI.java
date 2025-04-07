@@ -25,9 +25,7 @@ public class CircuitCreationSceneUI extends JFrame implements ActionListener {
     public int gridStepValue;
     public ArrayList<Placeable> nodes;
 
-    private final ArrayList<Point> connectionPoints;
-
-    private final PointChecker pc = new PointChecker();
+    private final PointChecker pc;
 
     private Point prevPt;
 
@@ -56,26 +54,24 @@ public class CircuitCreationSceneUI extends JFrame implements ActionListener {
     private short ID;
 
 
-    public CircuitCreationSceneUI(String fileName, ArrayList<Placeable> inNodes, int inGridStep, File in, short inID) {
+    public CircuitCreationSceneUI(String fileName, ArrayList<Placeable> inNodes, int inGridStep, File in, short inID, PointChecker pc) {
 
+        this.pc = pc;
         ID = inID;
-
-        connectionPoints = new ArrayList<>();
-
 
         // assign the inFile if a file is given in the constructor (from a previously saved file)
 
         inFile = Objects.requireNonNull(in);
 
-        // if a gridStepValue of 0 is given in the constructor, the default of 100 is used
-        if (inGridStep != 0) {
+        // if an invalid GSV is given, default of 100 is set
+        if (inGridStep >= 10 && inGridStep <= 100) {
             this.gridStepValue = inGridStep;
         } else gridStepValue = 100;
 
         // inNodes is only given when loading a previously saved file, otherwise it should be null
         // If inNodes is not given, assign the nodes ArrayList with a new, empty ArrayList
         nodes = Objects.requireNonNullElse(inNodes, new ArrayList<>());
-        pc.pointNodeCheck(grabbedNode, nodes); // TODO: fix initial check of all nodes at once
+
 
 
         // Set up labels and buttons
@@ -232,7 +228,7 @@ public class CircuitCreationSceneUI extends JFrame implements ActionListener {
         yesButton.setText("Yes");
         yesButton.addActionListener(e -> {
             try {
-                FileSaver.saveCircuit(nodes, connectionPoints, gridStepValue, inFile);
+                FileSaver.saveCircuit(nodes, gridStepValue, pc.getConMap(), inFile);
                 new MainMenu();
                 this.dispose();
                 popup.dispose();
@@ -246,7 +242,7 @@ public class CircuitCreationSceneUI extends JFrame implements ActionListener {
         noButton.setText("No");
         noButton.addActionListener(e -> {
             try {
-                FileSaver.saveCircuit(nodes, connectionPoints, gridStepValue, inFile);
+                FileSaver.saveCircuit(nodes, gridStepValue, pc.getConMap(), inFile);
                 System.exit(0);
             } catch (IOException ex) {
                 throw new RuntimeException(ex);
@@ -386,9 +382,7 @@ public class CircuitCreationSceneUI extends JFrame implements ActionListener {
                         nodes.remove(grabbedNode);
                         pc.nodeRemoveAllConnections(grabbedNode, nodes);
                     }
-
                     repaint();
-
                 }
 
 

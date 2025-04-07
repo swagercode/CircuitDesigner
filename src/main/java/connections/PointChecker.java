@@ -12,10 +12,6 @@ public class PointChecker {
 
     HashMap<Point, Set<Placeable>> conMap;
 
-    public PointChecker(HashMap<Point, Set<Placeable>> conMap){
-        this.conMap = conMap;
-    }
-
     public PointChecker(){
         this.conMap = new HashMap<>();
     }
@@ -26,6 +22,10 @@ public class PointChecker {
 
     public void setConMap(HashMap<Point, Set<Placeable>> conMap) {
         this.conMap = conMap;
+    }
+
+    public void addPoint(Point p, Set<Placeable> nodes){
+        this.conMap.put(p,nodes);
     }
 
     /**
@@ -55,19 +55,6 @@ public class PointChecker {
     }
 
     /**
-     * This method loops through all nodes in the currently opened file, and removes Entries from the HashMap if the value
-     * has a size < 2. This method should never
-     */
-    public void removeNonConnections() {
-        for (Map.Entry<Point, Set<Placeable>> entry : conMap.entrySet()) {
-            if (entry.getValue().size() < 2) {
-                conMap.remove(entry.getKey());
-                throw new RuntimeException("There should never be a Point with a size < 2 in the HashMap.");
-            }
-        }
-    }
-
-    /**
      * This method checks the connections between a singular input node and every other node on the plane.
      * If there are any connections, add the newNode to ArrayList associated with that Point
      * If no Point key already exists, create a new Entry with the Point and ArrayList containing both the current node
@@ -84,17 +71,16 @@ public class PointChecker {
         for (Point p : newNode.getConnectionPoints()){ // iterate over each connection point on the newNode
             for (Placeable node : nodes){ // iterate over each node in the list of all nodes
                 if (node.equals(newNode)) {
-                    throw new RuntimeException("Grabbed node should not be in the list of all nodes until dropped. " +
-                            "\n    Check that the grabbed node is being removed from the list of all nodes before calling this method.");
+                    continue;
                 }
 
                 if (landsOnNode(p, node)){ //TODO: if a wire is connected to a node before being moved, move that wire with the node
                     if (newNode instanceof Wire w1 && node instanceof Wire w2){
-                        if (!wireToWire(w1, w2, p)){ //TODO: weird edge case where if you draw the end point of a wire onto another wire rather than the start point, it doesnt draw a connection point
+                        if (!wireToWire(w1, w2)){ //TODO: weird edge case where if you draw the end point of a wire onto another wire rather than the start point, it doesnt draw a connection point
                             continue;
                         }
                     }
-                    if (conMap.containsKey(p)){
+                    if (conMap.containsKey(p) && conMap.get(p).contains(node) && !conMap.get(p).contains(newNode)){
                         conMap.get(p).add(newNode);
                     }
                     else{
@@ -152,23 +138,34 @@ public class PointChecker {
         return false;
     }
 
-    public static boolean wireToWire(Wire w1, Wire w2, Point p){
-        if (w2.getEndPoints().contains(p)) return true;
-        else {
-            for (Point point : w2.getConnectionPoints()) {
-                if (w1.getEndPoints().contains(point)) return true;
-            }
+    /**
+     * Iterates through the points on each wire and checks if there's an end point of wire 1 that lands on any other point
+     * on wire 2, or vise versa.
+     * @param w1 Wire 1
+     * @param w2 Wire 2
+     * @return if there is a valid intersection
+     */
+    public static boolean wireToWire(Wire w1, Wire w2){
+        for (Point point : w1.getConnectionPoints()) {
+            if (w2.getEndPoints().contains(point)) return true;
+        }
+        for (Point point : w2.getConnectionPoints()) {
+            if (w1.getEndPoints().contains(point)) return true;
         }
         return false;
     }
 
+    /**
+     * Returns a random point that does not lie within the bounds of a node within the list of nodes
+     */
     public static Point randPointNotNode(ArrayList<Placeable> nodes, int gridStepValue){
         int x = (int)(Math.random() * (gridStepValue * 10));
         int y = (int)(Math.random() * (gridStepValue * 10));
-        Point p = snapToGrid(new Point(x, y), gridStepValue);
+        Point p = new Point(x, y);
+        if (nodes.isEmpty()) return snapToGrid(p, gridStepValue);
         for (Placeable node : nodes) {
             if (node.getBounds().contains(p)) continue;
-            return p;
+            return snapToGrid(p, gridStepValue);
         }
         throw new RuntimeException("No valid point found. This should never happen. Please report this bug to the developer.");
     }

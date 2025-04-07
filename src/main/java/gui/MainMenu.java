@@ -1,6 +1,7 @@
 package gui;
 
 import com.opencsv.exceptions.CsvException;
+import connections.PointChecker;
 import fileHandling.FileSaver;
 
 import javax.imageio.ImageIO;
@@ -323,7 +324,7 @@ public class MainMenu extends JFrame implements ActionListener, KeyListener {
         // Change the scene
         dispose();
         frameTimer.stop();
-        CircuitCreationSceneUI newScene = new CircuitCreationSceneUI(buttonField.getText(), null, 100, outFile, (short) 0);
+        CircuitCreationSceneUI newScene = new CircuitCreationSceneUI(buttonField.getText(), null, 100, outFile, (short) 0, new PointChecker());
         newScene.setVisible(true);
 
     }

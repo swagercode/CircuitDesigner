@@ -2,6 +2,7 @@ package fileHandling;
 
 import com.opencsv.CSVReader;
 import com.opencsv.exceptions.CsvException;
+import connections.PointChecker;
 import gui.CircuitCreationSceneUI;
 import nodes.*;
 import nodes.gates.AndGate;
@@ -11,8 +12,7 @@ import nodes.gates.XorGate;
 
 import java.awt.*;
 import java.io.*;
-import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.*;
 
 public class FileSaver {
     public static BufferedWriter writer;
@@ -29,11 +29,14 @@ public class FileSaver {
         // set the file name
         String circuitName = inFile.getName();
 
-        // read the inFile to a csvreader
+        // read the inFile to a csv reader
         CSVReader reader = new CSVReader(new FileReader(inFile));
 
         // make arraylist of the items to be rendered
         ArrayList<Placeable> circuitData = new ArrayList<>();
+
+        // PointChecker for the connectionMap
+        PointChecker pc = new PointChecker();
 
         // get the saved gridStepValue from the file
         int gridStep;
@@ -43,18 +46,26 @@ public class FileSaver {
         String[] lineData;
         short maxID = 0;
 
-
+        // instantiate variables outside loop
+        int x;
+        int y;
+        short id;
+        Point pos;
+        int currentID = 0;
+        Point endPos;
 
         while ((lineData = reader.readNext()) != null) {
             //debug
-            System.out.println(lineData[0] + ' ' +  lineData[1] + ' ' + lineData[2] + ' ' + lineData[3]);
+            System.out.println("LINE DATA: " +
+                    lineData[0] + ' ' +  lineData[1] + ' ' + lineData[2] + ' ' + lineData[3]);
 
             // get the absolute x and y values of the current node
-            int x = Integer.parseInt(lineData[0]);
-            int y = Integer.parseInt(lineData[1]);
-            Point pos = new Point(x * gridStep, y * gridStep);
-            short id = Short.parseShort(lineData[3]);
-            if (id > maxID) maxID = id;
+            x = Integer.parseInt(lineData[0]);
+            y = Integer.parseInt(lineData[1]);
+            pos = new Point(x * gridStep, y * gridStep);
+            id = Short.parseShort(lineData[3]);
+            maxID = (short) Math.max(maxID, id);
+            int alignment;
 
             // for each different type of node, make a new gate of that type with the previously defined variables. then add
             // that gate to the ArrayList
@@ -87,13 +98,11 @@ public class FileSaver {
                 }
                 case "WIRE" -> {
                     System.out.println(Arrays.toString(lineData));
-                    int endX = Integer.parseInt(lineData[4]);
-                    int endY = Integer.parseInt(lineData[5]);
-                    int alignment = Integer.parseInt(lineData[6]);
-                    Point endPos = new Point(endX * gridStep, endY * gridStep);
+                    x = Integer.parseInt(lineData[4]);
+                    y = Integer.parseInt(lineData[5]);
+                    alignment = Integer.parseInt(lineData[6]);
+                    endPos = new Point(x * gridStep, y * gridStep);
                     Wire wire = new Wire(pos, endPos, gridStep, id, alignment);
-                    // for each next element in the list, add that connection
-
                     circuitData.add(wire);
                     System.out.println("Wire added");
                 }
@@ -102,14 +111,29 @@ public class FileSaver {
                     InputNode inputNode = new InputNode(pos, gridStep, id, value);
                     circuitData.add(inputNode);
                     System.out.println("InputNode added" + value);
-
+                }
+                case "CON" -> {
+                    Set<Placeable> value = new HashSet<>();
+                    int conX = Integer.parseInt(lineData[0]) * gridStep;
+                    int conY = Integer.parseInt(lineData[1]) * gridStep;
+                    for (int i = 3; i < lineData.length; i++) {
+                        try {
+                            currentID = Integer.parseInt(lineData[i]);
+                        }
+                        catch (NumberFormatException e){
+                            System.out.println("Error occurred when attempting to get linData[" + i + "] as an integer");
+                        }
+                        value.add(circuitData.get(currentID));
+                    }
+                    pc.addPoint(new Point(conX, conY), value); // TODO: initial connections disappear after first check
+                    System.out.println("Connection added");
                 }
             }
 
         }
 
         System.out.println("File opened:" + reader.getClass().getName());
-        new CircuitCreationSceneUI(circuitName, circuitData, gridStep, inFile, maxID);
+        new CircuitCreationSceneUI(circuitName, circuitData, gridStep, inFile, maxID, pc);
     }
 
     /**
@@ -124,7 +148,7 @@ public class FileSaver {
      * @param inFile
      * File to be written to
      */
-    public static void saveCircuit(ArrayList<Placeable> circuitData, ArrayList<Point> connectionPoints, int gridStepValue, File inFile) throws IOException{ // TODO: change so it only edits changed values
+    public static void saveCircuit(ArrayList<Placeable> circuitData, int gridStepValue, HashMap<Point, Set<Placeable>> conMap, File inFile) throws IOException{ // TODO: change so it only edits changed values
         if (circuitData.isEmpty()) return;
         writer = new BufferedWriter(new FileWriter(inFile));
 
@@ -148,8 +172,16 @@ public class FileSaver {
             }
         }
 
-        for (Point p : connectionPoints){
-            writer.write(p.x / gridStepValue + "," + p.y / gridStepValue + ",");
+        // Write the data for each connection point
+        System.out.println(conMap.size());
+        for (Point point : conMap.keySet()) {
+            writer.write(point.x / gridStepValue + "," + point.y / gridStepValue + ",CON");
+
+            for (Placeable node : conMap.get(point)) {
+                writer.write("," + node.getID());
+                System.out.println("ID for " + node.getType() + ": " + node.getID());
+            }
+            writer.newLine();
         }
         writer.close();
     }
