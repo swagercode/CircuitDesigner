@@ -10,11 +10,12 @@ import java.io.IOException;
 public class MenuButton extends JButton {
     BufferedImage defaultButton; // Initializes the button icons
     BufferedImage rolloverButton;
-    public static float sizeScale = 3;
-    public static Font BUTTON_FONT = new Font("Segoe UI Black", Font.BOLD, (int) (10  * sizeScale));
+    public float sizeScale = 3;
+    public Font buttonFont;
+    public static final Font BUTTON_FONT = new Font("Segoe UI Black", Font.BOLD, 30);
 
     MenuButton(){
-
+        buttonFont = new Font("Segoe UI Black", Font.BOLD, 30);
         try {
             defaultButton = ImageIO.read(getClass().getResource("/main/resources/menuButton.png"));
             rolloverButton = ImageIO.read(getClass().getResource("/main/resources/menuButtonRollover.png"));
@@ -44,7 +45,7 @@ public class MenuButton extends JButton {
         // Set text and font
         this.setHorizontalTextPosition(JButton.CENTER);
         this.setVerticalTextPosition(JButton.CENTER);
-        this.setFont(BUTTON_FONT);
+        this.setFont(buttonFont);
 
 
         this.setBorder(new EtchedBorder(EtchedBorder.RAISED));
@@ -60,6 +61,6 @@ public class MenuButton extends JButton {
 
     public void setSizeScale(float sizeScale){
         this.sizeScale = sizeScale;
-        this.BUTTON_FONT = new Font("Segoe UI Black", Font.BOLD, (int) (10  * sizeScale));
+        this.buttonFont = new Font("Segoe UI Black", Font.BOLD, (int) (10  * sizeScale));
     }
 }

@@ -55,8 +55,8 @@ public class GridDrawer {
 
     /**
      * Loops through each node and draws it. This does not include the grabbedNode
-     * @param nodes
-     * @param g
+     * @param nodes ArrayList of all nodes
+     * @param g Graphics component
      */
     public static void drawNodes(ArrayList<Placeable> nodes, Placeable grabbedNode,  Graphics2D g){
         for (Placeable node : nodes) {

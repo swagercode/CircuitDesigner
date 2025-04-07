@@ -24,24 +24,16 @@ public class MainMenu extends JFrame implements ActionListener, KeyListener {
     public static String circuitName;
     public static BufferedImage titleImage;
     public static BufferedImage iconImage;
-    private BufferedImage im;
     private File outFile;
     private final ArrayList<BufferedImage> backgroundArray;
     private final Timer frameTimer;
     private final JLayeredPane layeredPane;
-    private JPanel mainPain;
-    private JPanel palettePanel;
-    private JPanel topPanel;
-    private JPanel centerPanel;
-    private JPanel backgroundPanel;
-    private GridLayout gridLayout;
-    private MenuButton newCircuitButton;
-    private MenuButton openCircuitButton;
-    private MenuButton settingsButton;
+    private final MenuButton newCircuitButton;
+    private final MenuButton openCircuitButton;
+    private final MenuButton settingsButton;
     private MenuButton createButton;
     private MenuButton cancelButton;
     private JPanel fieldPanel;
-    private JLabel fieldLabel;
     private JTextField buttonField;
 
 
@@ -57,7 +49,7 @@ public class MainMenu extends JFrame implements ActionListener, KeyListener {
         backgroundArray = new ArrayList<>();
         while (i <= 199) { // 199
             if (getClass().getResource("/main/resources/backGroundArray/ezgif-frame-" + (i + 1) + ".png") != null) { // TODO: convert to jpeg
-                im = ImageIO.read(Objects.requireNonNull(getClass().getResource("/main/resources/backGroundArray/ezgif-frame-" + (i + 1) + ".png")));
+                BufferedImage im = ImageIO.read(Objects.requireNonNull(getClass().getResource("/main/resources/backGroundArray/ezgif-frame-" + (i + 1) + ".png")));
                 backgroundArray.add(im);
                 i++;
             } else {
@@ -92,24 +84,24 @@ public class MainMenu extends JFrame implements ActionListener, KeyListener {
 
 
         // Create main pane
-        mainPain = new JPanel();
+        JPanel mainPain = new JPanel();
 
         // Create layered pane
         layeredPane = new JLayeredPane();
         layeredPane.setLayout(null);
 
         // Create layout manager for palette panel with 1 column and a 20 pixel gap between buttons
-        gridLayout = new GridLayout(0, 1, 0, 20);
+        GridLayout gridLayout = new GridLayout(0, 1, 0, 20);
 
         // Create top and center panels, put them into the palette panel
-        palettePanel = new JPanel(); // Make a panel to contain the other panels in palette layer
+        JPanel palettePanel = new JPanel(); // Make a panel to contain the other panels in palette layer
         palettePanel.setOpaque(false);
         palettePanel.setSize(SCREEN_SIZE);
         palettePanel.setMaximumSize(SCREEN_SIZE);
         palettePanel.setLayout(gridLayout);
 
         // Create top panel
-        topPanel = new JPanel();
+        JPanel topPanel = new JPanel();
         topPanel.setOpaque(false);
         topPanel.setBounds(0, 50, 275, 100);
         // Set size
@@ -119,7 +111,7 @@ public class MainMenu extends JFrame implements ActionListener, KeyListener {
         topPanel.setAlignmentY(Component.TOP_ALIGNMENT);
 
         // Create center panel
-        centerPanel = new JPanel();
+        JPanel centerPanel = new JPanel();
         centerPanel.setOpaque(false);
         //Set size
         centerPanel.setMinimumSize(new Dimension(SCREEN_SIZE.width / 6, SCREEN_SIZE.height / 6));
@@ -167,27 +159,10 @@ public class MainMenu extends JFrame implements ActionListener, KeyListener {
 
 
         // Create background panel and animate background
-        backgroundPanel = new JPanel() {
-
-            // initialize frame counter
-            private short i = 0;
-
-            @Override
-            protected void paintComponent(Graphics g) { // Draw next frame of the background each timer tick
-                super.paintComponent(g);
-                Graphics2D g2d = (Graphics2D) g;
-                g2d.drawImage(backgroundArray.get(i), 0, 0, null);
-
-                // increment the frame counter by 1 and once it reaches the end frame, restart
-                i++;
-                if (i == backgroundArray.size() - 1) {
-                    i = 0;
-                }
-            }
-        };
-        backgroundPanel.setOpaque(false);
-        backgroundPanel.setBackground(Color.BLACK);
-        backgroundPanel.setBounds(0, 0, (int) SCREEN_SIZE.getWidth(), (int) SCREEN_SIZE.getHeight());
+        // initialize frame counter
+        // Draw next frame of the background each timer tick
+        // increment the frame counter by 1 and once it reaches the end frame, restart
+        JPanel backgroundPanel = getJPanel();
 
 
         // Add components to layered pane
@@ -212,6 +187,31 @@ public class MainMenu extends JFrame implements ActionListener, KeyListener {
 
     }
 
+    private JPanel getJPanel() {
+        JPanel backgroundPanel = new JPanel() {
+
+            // initialize frame counter
+            private short i = 0;
+
+            @Override
+            protected void paintComponent(Graphics g) { // Draw next frame of the background each timer tick
+                super.paintComponent(g);
+                Graphics2D g2d = (Graphics2D) g;
+                g2d.drawImage(backgroundArray.get(i), 0, 0, null);
+
+                // increment the frame counter by 1 and once it reaches the end frame, restart
+                i++;
+                if (i == backgroundArray.size() - 1) {
+                    i = 0;
+                }
+            }
+        };
+        backgroundPanel.setOpaque(false);
+        backgroundPanel.setBackground(Color.BLACK);
+        backgroundPanel.setBounds(0, 0, (int) SCREEN_SIZE.getWidth(), (int) SCREEN_SIZE.getHeight());
+        return backgroundPanel;
+    }
+
     /**
      * Opens the menu for creating a new circuit
      */
@@ -231,7 +231,7 @@ public class MainMenu extends JFrame implements ActionListener, KeyListener {
         fieldPanel.setBounds(new Rectangle(SCREEN_SIZE.width / 4, SCREEN_SIZE.height / 4, SCREEN_SIZE.width / 2, SCREEN_SIZE.height / 5));
 
         // Create label to tell the user to type a file name
-        fieldLabel = new JLabel();
+        JLabel fieldLabel = new JLabel();
         fieldLabel.setText("Enter Circuit Name Here: ");
         fieldLabel.setFont(MenuButton.BUTTON_FONT);
         fieldLabel.setOpaque(false);
@@ -310,7 +310,6 @@ public class MainMenu extends JFrame implements ActionListener, KeyListener {
 
     /**
      * Creates the new circuit with the input file name
-     * @throws IOException
      */
     public void createCircuit() throws IOException {
 
