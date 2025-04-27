@@ -1,4 +1,4 @@
-This is an independant project I've
+This is an independent project I've
 been working on. It's the first project
 I've started since I've returned to 
 programming this year.
